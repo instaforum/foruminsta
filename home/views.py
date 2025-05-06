@@ -2,14 +2,14 @@ from django.shortcuts import render, redirect
 from forum.models import Subforum, Thread
 from events.models import Event
 from news.models import NewsArticle
+from django.views.decorators.cache import never_cache
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.core.mail import send_mail
 from django.db.models import Count
 from django.utils import timezone
-from django.views.decorators.cache import cache_page
 
-@cache_page(60 * 15) 
+@never_cache
 def home(request):
     # 1. Événement phare (le prochain événement à venir)
     featured_event = Event.objects.filter(

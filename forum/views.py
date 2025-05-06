@@ -1,4 +1,4 @@
-
+import time
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.models import User, Group
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
 from django.http import HttpResponseForbidden
 from django.contrib import messages
 from django.urls import reverse
@@ -63,44 +64,6 @@ def subforum_view(request, slug):
     threads = subforum.threads.all()
     active_user = request.user.is_active
     return render(request, 'forum/subforum.html', {'subforum': subforum, 'threads': threads, 'active_user': active_user})
-
-
-@login_required
-def add_post_view(request, thread_id):
-    if request.method == 'POST':
-        thread = get_object_or_404(Thread, id=thread_id)
-        form = PostForm(request.POST)
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            post.thread = thread
-            
-            # Normalisation du contenu
-            content = form.cleaned_data['content']
-            quoted_text = request.POST.get('quoted_text', '')
-            translated_string = str(_('Réponse à @'))
-            if not content.startswith(translated_string):
-                if quoted_text:
-                    post.content = f"{quoted_text}\n\n{content}"
-                else:
-                    post.content = content
-            
-            post.save()
-            
-            if post.author and thread.author != request.user:
-                Notification.objects.create(
-                    user=thread.author,
-                     message=_('%(username)s a commenté votre thread "%(title)s"') % {
-                            'username': request.user.username,
-                            'title': thread.title
-                        },
-                    link=reverse('forum:thread', kwargs={'slug': thread.slug}))
-                
-            return redirect('forum:thread', slug=thread.slug)
-        else:
-            return render(request, 'forum/thread.html', {'thread': thread, 'form': form})
-    return redirect('forum:thread', slug=thread.slug)
-
 
 @login_required
 @permission_required('forum.delete_thread', raise_exception=True)
@@ -316,22 +279,72 @@ def tagged(request, slug):
         'threads': threads,
     })
 
+
 @login_required
+@never_cache
+def add_post_view(request, thread_id):
+    if request.method == 'POST':
+        thread = get_object_or_404(Thread, id=thread_id)
+        form = PostForm(request.POST)
+        if form.is_valid():
+            post = form.save(commit=False)
+            post.author = request.user
+            post.thread = thread
+            
+            # Normalisation du contenu
+            content = form.cleaned_data['content']
+            quoted_text = request.POST.get('quoted_text', '')
+            translated_string = str(_('Réponse à @'))
+            if not content.startswith(translated_string):
+                if quoted_text:
+                    post.content = f"{quoted_text}\n\n{content}"
+                else:
+                    post.content = content
+            
+            post.save()
+            
+            if post.author and thread.author != request.user:
+                Notification.objects.create(
+                    user=thread.author,
+                     message=_('%(username)s a commenté votre thread "%(title)s"') % {
+                            'username': request.user.username,
+                            'title': thread.title
+                        },
+                    link=reverse('forum:thread', kwargs={'slug': thread.slug}))
+            
+            # Calculer la dernière page pour afficher le nouveau post
+            post_count = thread.posts.count()
+            paginator = Paginator(range(post_count), 12)  # Même nombre que dans thread_view
+            last_page = (post_count // paginator.per_page) + (1 if post_count % paginator.per_page > 0 else 0)
+            
+            # Ajouter un paramètre timestamp pour éviter le cache
+            timestamp = int(time.time())
+            return redirect(f'{reverse("forum:thread", kwargs={"slug": thread.slug})}?page={last_page}&t={timestamp}#post-{post.id}')
+        else:
+            return render(request, 'forum/thread.html', {'thread': thread, 'form': form})
+    return redirect('forum:thread', slug=thread.slug)
+
+
+
+@login_required
+@never_cache
 def thread_view(request, slug):
-    # thread = get_object_or_404(Thread, slug=slug)
+    # Récupérer le thread avec le nombre de posts
     thread = get_object_or_404(
         Thread.objects.annotate(
             post_count=Count('posts')
         ), 
         slug=slug
     )
+    
+    # Incrémenter le compteur de vues
     thread.view_count += 1
     thread.save()
-    posts_list = thread.posts.all().order_by('-created_at')
+    
+    # Récupérer les posts dans l'ordre chronologique (du plus ancien au plus récent)
+    posts_list = thread.posts.all().order_by('created_at')
     post_count = Thread.objects.annotate(post_count=Count('posts')).get(slug=slug)
     
-    
-
     # Pagination
     paginator = Paginator(posts_list, 12)
     page = request.GET.get('page', 1)
@@ -359,12 +372,17 @@ def thread_view(request, slug):
             # Message de confirmation
             messages.success(request, _('Votre message a été publié avec succès !'))
             
-            # Rediriger vers la dernière page pour voir le nouveau post
-            last_page = paginator.num_pages + 1 
-            return redirect(f'{reverse("forum:thread", kwargs={"slug": thread.slug})}?page={last_page}#post-{post.id}')
+            # Calculer correctement la dernière page
+            post_count = thread.posts.count()
+            last_page = (post_count // paginator.per_page) + (1 if post_count % paginator.per_page > 0 else 0)
+            
+            # Ajouter un timestamp pour éviter le cache
+            timestamp = int(time.time())
+            return redirect(f'{reverse("forum:thread", kwargs={"slug": thread.slug})}?page={last_page}&t={timestamp}#post-{post.id}')
     else:
         form = PostForm()
 
+    # Trouver des threads similaires
     threads_tag_ids = thread.tags.values_list('id', flat=True)
     similar_threads = Thread.objects.filter(
         tags__in=threads_tag_ids,
@@ -374,7 +392,6 @@ def thread_view(request, slug):
         same_tags=Count('tags')
     ).order_by('-same_tags')[:5]
 
-
     return render(request, 'forum/thread.html', {
         'thread': thread,
         'posts': posts,
@@ -383,19 +400,10 @@ def thread_view(request, slug):
         'similar_threads': similar_threads,
     })
 
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.decorators import login_required
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
-from .models import Thread
-
 @csrf_exempt
 @login_required
 def like_thread(request, slug):
     thread = get_object_or_404(Thread, slug=slug)
-
     if thread.likes.filter(id=request.user.id).exists():
         thread.likes.remove(request.user)
         liked = False
@@ -403,26 +411,11 @@ def like_thread(request, slug):
         thread.likes.add(request.user)
         liked = True
 
-    # Après avoir liké ou unliké ➔ envoyer mise à jour WebSocket
-    likes_count = thread.total_likes()
-
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        f'thread_{slug}',
-        {
-            'type': 'thread_liked',
-            'slug': slug,
-            'likes_count': likes_count,
-        }
-    )
-
     return JsonResponse({
         'liked': liked,
-        'total_likes': likes_count,
+        'total_likes': thread.total_likes()
     })
-
       
-@login_required
 @csrf_exempt
 @login_required
 def like_post(request, post_id):
