@@ -1,0 +1,18 @@
+# Ignorer les dossiers
+venv_wsl/
+OKay/
+newsletter/
+migrations/
+media/
+fixtures/
+__pycache__/
+.tmp.driveupload/
+.vscode/
+db.sqlite3
+debug.log
+vas.py
+faire.txt
+.env 
+*.pyc
+*.sqlite3
+.idea/

@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}" />
+    <meta property="og:title" content="{{ thread.title }}" />
+    <meta property="og:description" content="{{ thread.content|default:'Description par défaut' }}" />
+    <meta property="og:image"
+        content="{% if thread.image %}{{ thread.image.url }}{% else %}https://picsum.photos/800/400{% endif %}" />
+    <meta property="og:type" content="website" />
+    <title>{% block title %}InstaForum{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
+    <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'css/footer.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Lobster&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'fontawesome-free-6.7.1-web/css/all.min.css' %}">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
+    {% block link %}
+    <!-- Vous pouvez ajouter vos liens CSS ici -->
+    {% endblock %}
+</head>
+
+<body>
+    {% include 'includes/navbar.html' %} <!-- Inclusion de la barre de navigation -->
+
+    <div class="content" id="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+
+    {% include 'includes/footer.html' %} <!-- Inclusion du pied de page -->
+
+    {% block javascript %}
+    <script src="{% static 'js/base.js' %}"></script>
+    <script src="{% static 'js/navbar.js' %}"></script>
+
+    {% endblock %}
+    {% block domReady %}
+
+    {% endblock domReady %}
+</body>
+
+</html>

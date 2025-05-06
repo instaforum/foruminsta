@@ -1,0 +1,92 @@
+body {
+    color: var(--text-color);
+    background-color: var(--background-color);
+    transition: all 0.3s ease;
+}
+
+.primary-btn {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    transition: all 0.2s ease;
+}
+
+.primary-btn:hover {
+    opacity: 0.9;
+}
+
+.secondary-btn {
+    background-color: transparent;
+    color: var(--text-color);
+    border: 1px solid var(--text-color);
+    transition: all 0.2s ease;
+}
+
+.secondary-btn:hover {
+    background-color: rgba(128, 128, 128, 0.1);
+}
+
+.thread-card,
+.comment-card,
+.similar-thread-card {
+    background-color: var(--background-color);
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    color: var(--text-color);
+}
+
+.dropdown-menu {
+    background-color: var(--dropdown-background);
+    color: var(--dropdown-text-color);
+    border: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.dropdown-menu a {
+    color: var(--dropdown-text-color);
+}
+
+.dropdown-menu a:hover {
+    background-color: var(--dropdown-hover-background);
+    color: white;
+}
+
+.tag {
+    background-color: rgba(30, 144, 255, 0.1);
+    color: var(--primary-color);
+}
+
+.pagination-btn {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+.pagination-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+}
+
+.custom-textarea {
+    color: var(--text-color);
+    background-color: var(--background-color);
+    border: 1px solid rgba(128, 128, 128, 0.3);
+}
+
+.custom-textarea:focus {
+    border-color: var(--primary-color);
+}
+
+/* Animation pour les dropdowns */
+.dropdown-transition {
+    transition: all 0.2s ease;
+    transform-origin: top right;
+}
+
+.scale-0 {
+    transform: scale(0);
+    opacity: 0;
+}
+
+.scale-100 {
+    transform: scale(1);
+    opacity: 1;
+}
