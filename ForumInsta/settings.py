@@ -326,15 +326,15 @@ ACCOUNT_SESSION_REMEMBER = True
 
 
 
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
-DEFAULT_FROM_EMAIL = "instaforum2025@gmail.com"
+# EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
+# DEFAULT_FROM_EMAIL = "instaforum2025@gmail.com"
 
-ANYMAIL = {
-    "BREVO_API_KEY": os.getenv('BREVO_API_KEY'),
-    "IGNORE_UNSUPPORTED_FEATURES": True,
-}
+# ANYMAIL = {
+#     "BREVO_API_KEY": os.getenv('BREVO_API_KEY'),
+#     "IGNORE_UNSUPPORTED_FEATURES": True,
+# }
 
 AUTHENTICATION_BACKENDS = [
     'modelUser.authentication.EmailOrUsernameBackend',
